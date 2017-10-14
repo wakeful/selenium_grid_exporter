@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: '48k-monitor'
+scrape_configs:
+  - job_name: 'selenium'
+    static_configs:
+      - targets: ['selenium_grid_exporter:8080']
