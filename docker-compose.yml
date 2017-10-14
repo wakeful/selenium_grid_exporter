@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+  hub:
+    image: selenium/hub:3.6.0
+    environment:
+      GRID_TIMEOUT: 10
+    ports:
+    - "4444:4444"
+  firefox:
+    image: selenium/node-firefox:3.6.0
+    environment:
+      HUB_PORT_4444_TCP_ADDR: "hub"
+      HUB_PORT_4444_TCP_PORT: "4444"
+  prometheus:
+    image: prom/prometheus
+    ports:
+    - "9090:9090"
+    volumes:
+    - ./prometheus.yml:/etc/prometheus/prometheus.yml:z
+  grafana:
+    image: grafana/grafana:4.5.2
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      GF_INSTALL_PLUGINS: "grafana-piechart-panel"
+    ports:
+    - "3000:3000"
+  selenium_grid_exporter:
+    build: .
+    command: "--scrape-uri http://hub:4444"
+    ports:
+    - "8080:8080"
