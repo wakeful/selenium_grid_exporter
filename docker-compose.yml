@@ -26,6 +26,8 @@ services:
       GF_INSTALL_PLUGINS: "grafana-piechart-panel"
     ports:
     - "3000:3000"
+  grafana_config:
+    build: ./grafana_config
   selenium_grid_exporter:
     build: .
     command: "--scrape-uri http://hub:4444"
