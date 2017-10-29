@@ -106,7 +106,7 @@ func (e *Exporter) scrape() {
 	var hResponse hubResponse
 	if err := json.Unmarshal(body, &hResponse); err != nil {
 
-		log.Errorf("Can't decode Selenium Grid response: $v", err)
+		log.Errorf("Can't decode Selenium Grid response: %v", err)
 		return
 	}
 
@@ -140,9 +140,8 @@ func main() {
 	flag.Parse()
 
 	log.Infoln("Starting selenium_grid_exporter")
-	exporter := NewExporter(*scrapeURI)
-	prometheus.MustRegister(exporter)
 
+	prometheus.MustRegister(NewExporter(*scrapeURI))
 	prometheus.Unregister(prometheus.NewGoCollector())
 	prometheus.Unregister(prometheus.NewProcessCollector(os.Getegid(), ""))
 
