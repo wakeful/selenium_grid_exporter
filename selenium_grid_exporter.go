@@ -8,7 +8,7 @@ import (
 	"os"
 	"sync"
 	"time"
-
+	
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
@@ -36,7 +36,7 @@ type hubResponse struct {
 	Debug        bool       `json:"debug"`
 	CleanUpCycle int        `json:"cleanUpCycle"`
 	Slots        slotCounts `json:"slotCounts"`
-	newSession   float64    `json:"newSessionRequestCount"`
+	NewSession   float64    `json:"newSessionRequestCount"`
 }
 
 type slotCounts struct {
@@ -111,17 +111,15 @@ func (e *Exporter) scrape() {
 	}
 
 	e.up.Set(1)
-
 	var hResponse hubResponse
 	if err := json.Unmarshal(body, &hResponse); err != nil {
 
 		log.Errorf("Can't decode Selenium Grid response: %v", err)
 		return
 	}
-
 	e.slotsTotal.Set(hResponse.Slots.Total)
 	e.slotsFree.Set(hResponse.Slots.Free)
-	e.newSessionRequestCount.Set(hResponse.newSession)
+	e.newSessionRequestCount.Set(hResponse.NewSession)
 
 }
 
