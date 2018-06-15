@@ -28,7 +28,7 @@ var (
 type Exporter struct {
 	URI                       string
 	mutex                     sync.RWMutex
-	up, slotsTotal, slotsFree prometheus.Gauge
+	up, slotsTotal, slotsFree, newSessionRequestCount prometheus.Gauge
 }
 
 type hubResponse struct {
@@ -36,6 +36,7 @@ type hubResponse struct {
 	Debug        bool       `json:"debug"`
 	CleanUpCycle int        `json:"cleanUpCycle"`
 	Slots        slotCounts `json:"slotCounts"`
+	newSession   float64    `json:"newSessionRequestCount"`
 }
 
 type slotCounts struct {
@@ -65,6 +66,12 @@ func NewExporter(uri string) *Exporter {
 			Name:      "slotsFree",
 			Help:      "number of free slots",
 		}),
+		newSessionRequestCount: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: nameSpace,
+			Subsystem: subSystem,
+			Name:      "sessions_backlog",
+			Help:      "number of sessions waiting for a slot",
+		}),
 	}
 }
 
@@ -72,6 +79,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	e.up.Describe(ch)
 	e.slotsTotal.Describe(ch)
 	e.slotsFree.Describe(ch)
+	e.newSessionRequestCount.Describe(ch)
 }
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
@@ -84,6 +92,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	ch <- e.up
 	ch <- e.slotsTotal
 	ch <- e.slotsFree
+	ch <- e.newSessionRequestCount
 
 	return
 }
@@ -112,6 +121,7 @@ func (e *Exporter) scrape() {
 
 	e.slotsTotal.Set(hResponse.Slots.Total)
 	e.slotsFree.Set(hResponse.Slots.Free)
+	e.newSessionRequestCount.Set(hResponse.newSession)
 
 }
 
