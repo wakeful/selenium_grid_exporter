@@ -8,7 +8,7 @@ import (
 	"os"
 	"sync"
 	"time"
-	
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
@@ -111,12 +111,14 @@ func (e *Exporter) scrape() {
 	}
 
 	e.up.Set(1)
+
 	var hResponse hubResponse
 	if err := json.Unmarshal(body, &hResponse); err != nil {
 
 		log.Errorf("Can't decode Selenium Grid response: %v", err)
 		return
 	}
+	
 	e.slotsTotal.Set(hResponse.Slots.Total)
 	e.slotsFree.Set(hResponse.Slots.Free)
 	e.newSessionRequestCount.Set(hResponse.NewSession)
