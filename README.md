@@ -18,6 +18,9 @@ Usage of /selenium_grid_exporter:
 ## Metrics
 
 ```
+# HELP selenium_grid_hub_sessions_backlog number of sessions waiting for a slot
+# TYPE selenium_grid_hub_sessions_backlog gauge
+selenium_grid_hub_sessions_backlog 0
 # HELP selenium_grid_hub_slotsFree number of free slots
 # TYPE selenium_grid_hub_slotsFree gauge
 selenium_grid_hub_slotsFree 4

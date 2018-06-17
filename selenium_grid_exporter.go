@@ -26,8 +26,8 @@ var (
 )
 
 type Exporter struct {
-	URI                       string
-	mutex                     sync.RWMutex
+	URI                                               string
+	mutex                                             sync.RWMutex
 	up, slotsTotal, slotsFree, newSessionRequestCount prometheus.Gauge
 }
 
@@ -118,7 +118,7 @@ func (e *Exporter) scrape() {
 		log.Errorf("Can't decode Selenium Grid response: %v", err)
 		return
 	}
-	
+
 	e.slotsTotal.Set(hResponse.Slots.Total)
 	e.slotsFree.Set(hResponse.Slots.Free)
 	e.newSessionRequestCount.Set(hResponse.NewSession)
