@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,22 +27,23 @@ var (
 )
 
 type Exporter struct {
-	URI                                               string
-	mutex                                             sync.RWMutex
-	up, slotsTotal, slotsFree, newSessionRequestCount prometheus.Gauge
+	URI                                     string
+	mutex                                   sync.RWMutex
+	up, totalSlots, usedSlots, sessionCount prometheus.Gauge
 }
 
 type hubResponse struct {
-	Success      bool       `json:"success"`
-	Debug        bool       `json:"debug"`
-	CleanUpCycle int        `json:"cleanUpCycle"`
-	Slots        slotCounts `json:"slotCounts"`
-	NewSession   float64    `json:"newSessionRequestCount"`
+	Data Data `json:"data"`
 }
 
-type slotCounts struct {
-	Free  float64 `json:"free"`
-	Total float64 `json:"total"`
+type Data struct {
+	Grid Grid `json:"grid"`
+}
+
+type Grid struct {
+	TotalSlots   float64 `json:"totalSlots"`
+	UsedSlots    float64 `json:"usedSlots"`
+	SessionCount float64 `json:"sessionCount"`
 }
 
 func NewExporter(uri string) *Exporter {
@@ -53,32 +56,32 @@ func NewExporter(uri string) *Exporter {
 			Name:      "up",
 			Help:      "was the last scrape of Selenium Grid successful.",
 		}),
-		slotsTotal: prometheus.NewGauge(prometheus.GaugeOpts{
+		totalSlots: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: nameSpace,
 			Subsystem: subSystem,
-			Name:      "slotsTotal",
-			Help:      "total number of slots",
+			Name:      "totalSlots",
+			Help:      "total number of usedSlots",
 		}),
-		slotsFree: prometheus.NewGauge(prometheus.GaugeOpts{
+		usedSlots: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: nameSpace,
 			Subsystem: subSystem,
-			Name:      "slotsFree",
-			Help:      "number of free slots",
+			Name:      "usedSlots",
+			Help:      "number of used slots",
 		}),
-		newSessionRequestCount: prometheus.NewGauge(prometheus.GaugeOpts{
+		sessionCount: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: nameSpace,
 			Subsystem: subSystem,
-			Name:      "sessions_backlog",
-			Help:      "number of sessions waiting for a slot",
+			Name:      "sessionCount",
+			Help:      "number of active sessions",
 		}),
 	}
 }
 
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	e.up.Describe(ch)
-	e.slotsTotal.Describe(ch)
-	e.slotsFree.Describe(ch)
-	e.newSessionRequestCount.Describe(ch)
+	e.totalSlots.Describe(ch)
+	e.usedSlots.Describe(ch)
+	e.sessionCount.Describe(ch)
 }
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
@@ -89,17 +92,18 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	e.scrape()
 
 	ch <- e.up
-	ch <- e.slotsTotal
-	ch <- e.slotsFree
-	ch <- e.newSessionRequestCount
+	ch <- e.totalSlots
+	ch <- e.usedSlots
+	ch <- e.sessionCount
 
 	return
 }
 
 func (e *Exporter) scrape() {
 
-	e.slotsTotal.Set(0)
-	e.slotsFree.Set(0)
+	e.totalSlots.Set(0)
+	e.usedSlots.Set(0)
+	e.sessionCount.Set(0)
 
 	body, err := e.fetch()
 	if err != nil {
@@ -112,37 +116,45 @@ func (e *Exporter) scrape() {
 	e.up.Set(1)
 
 	var hResponse hubResponse
+
 	if err := json.Unmarshal(body, &hResponse); err != nil {
 
 		log.Errorf("Can't decode Selenium Grid response: %v", err)
 		return
 	}
-
-	e.slotsTotal.Set(hResponse.Slots.Total)
-	e.slotsFree.Set(hResponse.Slots.Free)
-	e.newSessionRequestCount.Set(hResponse.NewSession)
-
+	e.totalSlots.Set(hResponse.Data.Grid.TotalSlots)
+	e.usedSlots.Set(hResponse.Data.Grid.UsedSlots)
+	e.sessionCount.Set(hResponse.Data.Grid.SessionCount)
 }
 
 func (e Exporter) fetch() (output []byte, err error) {
 
+	url := (e.URI + "/graphql")
+	method := "POST"
+
+	payload := strings.NewReader(`{"query":"{ grid {totalSlots, usedSlots , sessionCount } }"}`)
+
 	client := http.Client{
 		Timeout: 3 * time.Second,
 	}
+	req, err := http.NewRequest(method, url, payload)
 
-	response, err := client.Get(e.URI + "/grid/api/hub")
 	if err != nil {
-		return nil, err
+		fmt.Println(err)
+		return
 	}
+	req.Header.Add("Content-Type", "application/json")
 
-	defer response.Body.Close()
-
-	output, err = ioutil.ReadAll(response.Body)
+	res, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		fmt.Println(err)
+		return
 	}
+	defer res.Body.Close()
 
-	return
+	body, err := ioutil.ReadAll(res.Body)
+
+	return body, err
 }
 
 func main() {
