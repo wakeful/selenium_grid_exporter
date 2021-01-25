@@ -18,15 +18,15 @@ Usage of /selenium_grid_exporter:
 ## Metrics
 
 ```
-# HELP selenium_grid_hub_sessions_backlog number of sessions waiting for a slot
-# TYPE selenium_grid_hub_sessions_backlog gauge
-selenium_grid_hub_sessions_backlog 0
-# HELP selenium_grid_hub_slotsFree number of free slots
-# TYPE selenium_grid_hub_slotsFree gauge
-selenium_grid_hub_slotsFree 4
-# HELP selenium_grid_hub_slotsTotal total number of slots
-# TYPE selenium_grid_hub_slotsTotal gauge
-selenium_grid_hub_slotsTotal 8
+# HELP selenium_grid_hub_sessionCount number of active sessions
+# TYPE selenium_grid_hub_sessionCount gauge
+selenium_grid_hub_sessionCount 0
+# HELP selenium_grid_hub_usedSlots number of used slots
+# TYPE selenium_grid_hub_usedSlots gauge
+selenium_grid_hub_usedSlots 4
+# HELP selenium_grid_hub_totalSlots total number of slots
+# TYPE selenium_grid_hub_totalSlots gauge
+selenium_grid_hub_totalSlots 8
 # HELP selenium_grid_up was the last scrape of Selenium Grid successful.
 # TYPE selenium_grid_up gauge
 selenium_grid_up 1

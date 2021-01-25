@@ -60,7 +60,7 @@ func NewExporter(uri string) *Exporter {
 			Namespace: nameSpace,
 			Subsystem: subSystem,
 			Name:      "totalSlots",
-			Help:      "total number of usedSlots",
+			Help:      "total number of slots",
 		}),
 		usedSlots: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: nameSpace,
