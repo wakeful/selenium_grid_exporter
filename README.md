@@ -21,12 +21,15 @@ Usage of /selenium_grid_exporter:
 # HELP selenium_grid_hub_sessionCount number of active sessions
 # TYPE selenium_grid_hub_sessionCount gauge
 selenium_grid_hub_sessionCount 0
-# HELP selenium_grid_hub_usedSlots number of used slots
-# TYPE selenium_grid_hub_usedSlots gauge
-selenium_grid_hub_usedSlots 4
+# HELP selenium_grid_hub_maxSession number of max sessions
+# TYPE sselenium_grid_hub_maxSession gauge
+selenium_grid_hub_maxSession 0
 # HELP selenium_grid_hub_totalSlots total number of slots
 # TYPE selenium_grid_hub_totalSlots gauge
 selenium_grid_hub_totalSlots 8
+# HELP selenium_grid_hub_sessionQueueSize number of session in queue
+# TYPE selenium_grid_hub_sessionQueueSize gauge
+selenium_grid_hub_sessionQueueSize 0
 # HELP selenium_grid_up was the last scrape of Selenium Grid successful.
 # TYPE selenium_grid_up gauge
 selenium_grid_up 1
