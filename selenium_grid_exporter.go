@@ -27,23 +27,20 @@ var (
 )
 
 type Exporter struct {
-	URI                                     string
-	mutex                                   sync.RWMutex
-	up, totalSlots, usedSlots, sessionCount prometheus.Gauge
+	URI                                                        string
+	mutex                                                      sync.RWMutex
+	up, totalSlots, maxSession, sessionCount, sessionQueueSize prometheus.Gauge
 }
 
 type hubResponse struct {
-	Data Data `json:"data"`
-}
-
-type Data struct {
-	Grid Grid `json:"grid"`
-}
-
-type Grid struct {
-	TotalSlots   float64 `json:"totalSlots"`
-	UsedSlots    float64 `json:"usedSlots"`
-	SessionCount float64 `json:"sessionCount"`
+	Data struct {
+		Grid struct {
+			TotalSlots       float64 `json:"totalSlots"`
+			MaxSession       float64 `json:"maxSession"`
+			SessionCount     float64 `json:"sessionCount"`
+			SessionQueueSize float64 `json:"sessionQueueSize"`
+		} `json:"grid"`
+	} `json:"data"`
 }
 
 func NewExporter(uri string) *Exporter {
@@ -60,13 +57,13 @@ func NewExporter(uri string) *Exporter {
 			Namespace: nameSpace,
 			Subsystem: subSystem,
 			Name:      "totalSlots",
-			Help:      "total number of slots",
+			Help:      "total number of usedSlots",
 		}),
-		usedSlots: prometheus.NewGauge(prometheus.GaugeOpts{
+		maxSession: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: nameSpace,
 			Subsystem: subSystem,
-			Name:      "usedSlots",
-			Help:      "number of used slots",
+			Name:      "maxSession",
+			Help:      "maximum number of sessions",
 		}),
 		sessionCount: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: nameSpace,
@@ -74,14 +71,21 @@ func NewExporter(uri string) *Exporter {
 			Name:      "sessionCount",
 			Help:      "number of active sessions",
 		}),
+		sessionQueueSize: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: nameSpace,
+			Subsystem: subSystem,
+			Name:      "sessionQueueSize",
+			Help:      "number of queued sessions",
+		}),
 	}
 }
 
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	e.up.Describe(ch)
 	e.totalSlots.Describe(ch)
-	e.usedSlots.Describe(ch)
+	e.maxSession.Describe(ch)
 	e.sessionCount.Describe(ch)
+	e.sessionQueueSize.Describe(ch)
 }
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
@@ -93,8 +97,9 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 	ch <- e.up
 	ch <- e.totalSlots
-	ch <- e.usedSlots
+	ch <- e.maxSession
 	ch <- e.sessionCount
+	ch <- e.sessionQueueSize
 
 	return
 }
@@ -102,8 +107,9 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 func (e *Exporter) scrape() {
 
 	e.totalSlots.Set(0)
-	e.usedSlots.Set(0)
+	e.maxSession.Set(0)
 	e.sessionCount.Set(0)
+	e.sessionQueueSize.Set(0)
 
 	body, err := e.fetch()
 	if err != nil {
@@ -123,8 +129,9 @@ func (e *Exporter) scrape() {
 		return
 	}
 	e.totalSlots.Set(hResponse.Data.Grid.TotalSlots)
-	e.usedSlots.Set(hResponse.Data.Grid.UsedSlots)
+	e.maxSession.Set(hResponse.Data.Grid.MaxSession)
 	e.sessionCount.Set(hResponse.Data.Grid.SessionCount)
+	e.sessionQueueSize.Set(hResponse.Data.Grid.SessionQueueSize)
 }
 
 func (e Exporter) fetch() (output []byte, err error) {
@@ -132,7 +139,9 @@ func (e Exporter) fetch() (output []byte, err error) {
 	url := (e.URI + "/graphql")
 	method := "POST"
 
-	payload := strings.NewReader(`{"query":"{ grid {totalSlots, usedSlots , sessionCount } }"}`)
+	payload := strings.NewReader(`{
+		"query": "{ grid {totalSlots, maxSession, sessionCount, sessionQueueSize} }"
+	}`)
 
 	client := http.Client{
 		Timeout: 3 * time.Second,
@@ -154,6 +163,8 @@ func (e Exporter) fetch() (output []byte, err error) {
 
 	body, err := ioutil.ReadAll(res.Body)
 
+	//s := string(body)
+	//fmt.Println(s)
 	return body, err
 }
 
