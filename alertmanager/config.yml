@@ -1,0 +1,12 @@
+route:
+  group_by: ['alertname']
+  group_interval: 30s
+  repeat_interval: 30s
+  group_wait: 30s
+  receiver: 'prometheus-msteams'
+
+receivers:
+- name: 'prometheus-msteams'
+  webhook_configs: # https://prometheus.io/docs/alerting/configuration/#webhook_config 
+  - send_resolved: true
+    url: 'http://prometheus-msteams-alert:2000/alertmanager' # the prometheus-msteams proxy
