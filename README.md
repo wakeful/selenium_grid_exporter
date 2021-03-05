@@ -5,7 +5,7 @@ A [Prometheus](https://prometheus.io/) exporter that collects [Selenium Grid](ht
 ### Usage
 
 ```sh
-$ docker run -it wakeful/selenium-grid-exporter -h
+$ docker run -it mcopjan/seleniumv4_grid_exporter:latest -h
 Usage of /selenium_grid_exporter:
   -listen-address string
       Address on which to expose metrics. (default ":8080")
@@ -15,6 +15,20 @@ Usage of /selenium_grid_exporter:
       Path under which to expose metrics. (default "/metrics")
 ```
 
+### Prometheus/Grafana example
+
+```
+  - run docker-compose -f docker-compose.yml up
+  - open grafana at localhost:3000 (admin/foobar)
+  - open Dashboards -> Manage -> Selenium4 Grid monitoring
+  ![selenium4_grafana.png](selenium4_grafana.png "Grafana example")
+  
+```
+      
+run docker-compose -f docker-compose.yml up
+open grafana at localhost:3000 (admin/foobar)
+Dashboards -> Manage -> Selenium4 Grid monitoring
+image
 ## Metrics
 
 ```
