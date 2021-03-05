@@ -1,0 +1,85 @@
+groups:
+- name: example
+  rules:
+
+  # Alert for any instance that is unreachable for > 5 minutes.
+  - alert: ServiceDown
+    expr: up == 0
+    for: 5m
+    labels:
+      severity: page
+    annotations:
+      summary: "Instance {{ $labels.instance }} down"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 5 minutes."
+
+  - alert: SeleniumGridDown
+    expr: selenium_grid_up != 1
+    for: 5s
+    labels:
+      severity: page
+    annotations:
+      summary: "Selenium grid down"
+      description: "Selenium grid http://uiplinfdoc040.ipswich.mgsops.net:4444/ went offline!"
+
+  - alert: SeleniumGridPendingSessions
+    expr: selenium_grid_hub_sessions_backlog > 0
+    for: 5s
+    labels:
+      severity: page
+    annotations:
+      summary: "Selenium grid pending sessions detected."
+      description: "Selenium grid http://uiplinfdoc040.ipswich.mgsops.net:4444/ contains queued up sessions!"
+
+  - alert: ContainerHighThrottleRate
+    expr: rate(container_cpu_cfs_throttled_seconds_total[3m]) > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container high throttle rate (instance {{ $labels.instance }})"
+      description: "Container is being throttled\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: ContainerVolumeUsage
+    expr: (1 - (sum(container_fs_inodes_free) BY (instance) / sum(container_fs_inodes_total) BY (instance)) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container Volume usage (instance {{ $labels.instance }})"
+      description: "Container Volume usage is above 80%\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: ContainerCpuUsage
+    expr: (sum(rate(container_cpu_usage_seconds_total{name!=""}[3m])) BY (instance, name) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container CPU usage (instance {{ $labels.instance }})"
+      description: "Container CPU usage is above 80%\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: HostHighCpuLoad
+    expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Host high CPU load (instance {{ $labels.instance }})"
+      description: "CPU load is > 80%\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: PrometheusAlertmanagerConfigurationReloadFailure
+    expr: alertmanager_config_last_reload_successful != 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Prometheus AlertManager configuration reload failure (instance {{ $labels.instance }})"
+      description: "AlertManager configuration reload error\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: PrometheusAlertmanagerConfigNotSynced
+    expr: count(count_values("config_hash", alertmanager_config_hash)) > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Prometheus AlertManager config not synced (instance {{ $labels.instance }})"
+      description: "Configurations of AlertManager cluster instances are out of sync\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"

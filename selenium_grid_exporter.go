@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,22 +27,20 @@ var (
 )
 
 type Exporter struct {
-	URI                                               string
-	mutex                                             sync.RWMutex
-	up, slotsTotal, slotsFree, newSessionRequestCount prometheus.Gauge
+	URI                                                        string
+	mutex                                                      sync.RWMutex
+	up, totalSlots, maxSession, sessionCount, sessionQueueSize prometheus.Gauge
 }
 
 type hubResponse struct {
-	Success      bool       `json:"success"`
-	Debug        bool       `json:"debug"`
-	CleanUpCycle int        `json:"cleanUpCycle"`
-	Slots        slotCounts `json:"slotCounts"`
-	NewSession   float64    `json:"newSessionRequestCount"`
-}
-
-type slotCounts struct {
-	Free  float64 `json:"free"`
-	Total float64 `json:"total"`
+	Data struct {
+		Grid struct {
+			TotalSlots       float64 `json:"totalSlots"`
+			MaxSession       float64 `json:"maxSession"`
+			SessionCount     float64 `json:"sessionCount"`
+			SessionQueueSize float64 `json:"sessionQueueSize"`
+		} `json:"grid"`
+	} `json:"data"`
 }
 
 func NewExporter(uri string) *Exporter {
@@ -53,32 +53,39 @@ func NewExporter(uri string) *Exporter {
 			Name:      "up",
 			Help:      "was the last scrape of Selenium Grid successful.",
 		}),
-		slotsTotal: prometheus.NewGauge(prometheus.GaugeOpts{
+		totalSlots: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: nameSpace,
 			Subsystem: subSystem,
-			Name:      "slotsTotal",
-			Help:      "total number of slots",
+			Name:      "totalSlots",
+			Help:      "total number of usedSlots",
 		}),
-		slotsFree: prometheus.NewGauge(prometheus.GaugeOpts{
+		maxSession: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: nameSpace,
 			Subsystem: subSystem,
-			Name:      "slotsFree",
-			Help:      "number of free slots",
+			Name:      "maxSession",
+			Help:      "maximum number of sessions",
 		}),
-		newSessionRequestCount: prometheus.NewGauge(prometheus.GaugeOpts{
+		sessionCount: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: nameSpace,
 			Subsystem: subSystem,
-			Name:      "sessions_backlog",
-			Help:      "number of sessions waiting for a slot",
+			Name:      "sessionCount",
+			Help:      "number of active sessions",
+		}),
+		sessionQueueSize: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: nameSpace,
+			Subsystem: subSystem,
+			Name:      "sessionQueueSize",
+			Help:      "number of queued sessions",
 		}),
 	}
 }
 
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	e.up.Describe(ch)
-	e.slotsTotal.Describe(ch)
-	e.slotsFree.Describe(ch)
-	e.newSessionRequestCount.Describe(ch)
+	e.totalSlots.Describe(ch)
+	e.maxSession.Describe(ch)
+	e.sessionCount.Describe(ch)
+	e.sessionQueueSize.Describe(ch)
 }
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
@@ -89,17 +96,20 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	e.scrape()
 
 	ch <- e.up
-	ch <- e.slotsTotal
-	ch <- e.slotsFree
-	ch <- e.newSessionRequestCount
+	ch <- e.totalSlots
+	ch <- e.maxSession
+	ch <- e.sessionCount
+	ch <- e.sessionQueueSize
 
 	return
 }
 
 func (e *Exporter) scrape() {
 
-	e.slotsTotal.Set(0)
-	e.slotsFree.Set(0)
+	e.totalSlots.Set(0)
+	e.maxSession.Set(0)
+	e.sessionCount.Set(0)
+	e.sessionQueueSize.Set(0)
 
 	body, err := e.fetch()
 	if err != nil {
@@ -112,37 +122,50 @@ func (e *Exporter) scrape() {
 	e.up.Set(1)
 
 	var hResponse hubResponse
+
 	if err := json.Unmarshal(body, &hResponse); err != nil {
 
 		log.Errorf("Can't decode Selenium Grid response: %v", err)
 		return
 	}
-
-	e.slotsTotal.Set(hResponse.Slots.Total)
-	e.slotsFree.Set(hResponse.Slots.Free)
-	e.newSessionRequestCount.Set(hResponse.NewSession)
-
+	e.totalSlots.Set(hResponse.Data.Grid.TotalSlots)
+	e.maxSession.Set(hResponse.Data.Grid.MaxSession)
+	e.sessionCount.Set(hResponse.Data.Grid.SessionCount)
+	e.sessionQueueSize.Set(hResponse.Data.Grid.SessionQueueSize)
 }
 
 func (e Exporter) fetch() (output []byte, err error) {
 
+	url := (e.URI + "/graphql")
+	method := "POST"
+
+	payload := strings.NewReader(`{
+		"query": "{ grid {totalSlots, maxSession, sessionCount, sessionQueueSize} }"
+	}`)
+
 	client := http.Client{
 		Timeout: 3 * time.Second,
 	}
+	req, err := http.NewRequest(method, url, payload)
 
-	response, err := client.Get(e.URI + "/grid/api/hub")
 	if err != nil {
-		return nil, err
+		fmt.Println(err)
+		return
 	}
+	req.Header.Add("Content-Type", "application/json")
 
-	defer response.Body.Close()
-
-	output, err = ioutil.ReadAll(response.Body)
+	res, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		fmt.Println(err)
+		return
 	}
+	defer res.Body.Close()
 
-	return
+	body, err := ioutil.ReadAll(res.Body)
+
+	//s := string(body)
+	//fmt.Println(s)
+	return body, err
 }
 
 func main() {

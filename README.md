@@ -5,7 +5,7 @@ A [Prometheus](https://prometheus.io/) exporter that collects [Selenium Grid](ht
 ### Usage
 
 ```sh
-$ docker run -it wakeful/selenium-grid-exporter -h
+$ docker run -it mcopjan/seleniumv4_grid_exporter:latest -h
 Usage of /selenium_grid_exporter:
   -listen-address string
       Address on which to expose metrics. (default ":8080")
@@ -15,18 +15,31 @@ Usage of /selenium_grid_exporter:
       Path under which to expose metrics. (default "/metrics")
 ```
 
+### Prometheus/Grafana example
+
+```
+  - run docker-compose -f docker-compose.yml up
+  - open grafana at localhost:3000 (admin/foobar)
+  - open Dashboards -> Manage -> Selenium4 Grid monitoring
+  
+```
+  ![Screenshot](selenium4_grafana.png)
+
 ## Metrics
 
 ```
-# HELP selenium_grid_hub_sessions_backlog number of sessions waiting for a slot
-# TYPE selenium_grid_hub_sessions_backlog gauge
-selenium_grid_hub_sessions_backlog 0
-# HELP selenium_grid_hub_slotsFree number of free slots
-# TYPE selenium_grid_hub_slotsFree gauge
-selenium_grid_hub_slotsFree 4
-# HELP selenium_grid_hub_slotsTotal total number of slots
-# TYPE selenium_grid_hub_slotsTotal gauge
-selenium_grid_hub_slotsTotal 8
+# HELP selenium_grid_hub_sessionCount number of active sessions
+# TYPE selenium_grid_hub_sessionCount gauge
+selenium_grid_hub_sessionCount 0
+# HELP selenium_grid_hub_maxSession number of max sessions
+# TYPE sselenium_grid_hub_maxSession gauge
+selenium_grid_hub_maxSession 0
+# HELP selenium_grid_hub_totalSlots total number of slots
+# TYPE selenium_grid_hub_totalSlots gauge
+selenium_grid_hub_totalSlots 8
+# HELP selenium_grid_hub_sessionQueueSize number of session in queue
+# TYPE selenium_grid_hub_sessionQueueSize gauge
+selenium_grid_hub_sessionQueueSize 0
 # HELP selenium_grid_up was the last scrape of Selenium Grid successful.
 # TYPE selenium_grid_up gauge
 selenium_grid_up 1
