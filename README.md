@@ -21,14 +21,10 @@ Usage of /selenium_grid_exporter:
   - run docker-compose -f docker-compose.yml up
   - open grafana at localhost:3000 (admin/foobar)
   - open Dashboards -> Manage -> Selenium4 Grid monitoring
-  ![selenium4_grafana.png](selenium4_grafana.png "Grafana example")
+  ![selenium4_grafana.png](./selenium4_grafana.png "Grafana example")
   
 ```
-      
-run docker-compose -f docker-compose.yml up
-open grafana at localhost:3000 (admin/foobar)
-Dashboards -> Manage -> Selenium4 Grid monitoring
-image
+
 ## Metrics
 
 ```
